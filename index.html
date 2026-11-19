@@ -86,6 +86,14 @@
     <p class="rule">개인 Google 계정(@gmail.com) 또는 네이버 계정(@naver.com)만 쓸 수 있습니다.<br>학교·회사 계정은 쓸 수 없습니다.</p>
   </section>
 
+  <section class="step" id="step-wait">
+    <div class="loading"><div class="spinner"></div></div>
+    <p class="who"><b>관리자 승인을 기다리는 중입니다</b></p>
+    <p class="who" id="wait-who"></p>
+    <p class="rule">승인되면 자동으로 다음 단계(OTP 등록)로 넘어갑니다.<br>이 화면을 닫아도 괜찮습니다. 승인된 뒤 다시 로그인하면 바로 진행됩니다.</p>
+    <div style="text-align:center"><button class="link" type="button" id="wait-cancel">다른 계정으로 로그인</button></div>
+  </section>
+
   <section class="step" id="step-otp">
     <p class="who" id="otp-who"></p>
     <div class="enroll" id="enroll" hidden>
@@ -126,7 +134,8 @@
 
   function $(id) { return document.getElementById(id); }
   function show(step) {
-    ['loading', 'login', 'otp'].forEach(function (s) { $('step-' + s).classList.toggle('on', s === step); });
+    if (step !== 'wait') stopWait();
+    ['loading', 'login', 'wait', 'otp'].forEach(function (s) { $('step-' + s).classList.toggle('on', s === step); });
   }
   function msg(text) { $('msg').textContent = text || ''; $('msg').classList.toggle('on', !!text); }
   function loading(text) { $('loading-text').textContent = text; show('loading'); }
@@ -211,6 +220,35 @@
     loading('계정을 확인하는 중…');
     body.action = 'login';
     api(body).then(function (res) {
+      if (res.step === 'pending') showWait(res); else showOtp(res);
+    }).catch(function (e) {
+      showLogin();
+      msg(e.message || '로그인에 실패했습니다.');
+    });
+  }
+
+  /* ---------- 승인 대기 ---------- */
+  var waitTimer = null;
+  function stopWait() { if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; } }
+  function showWait(res) {
+    var token = res.waitToken;
+    $('wait-who').textContent = (res.name || res.email) + ' (' + res.email + ')';
+    show('wait');
+    var tick = function () {
+      api({ action: 'wait', waitToken: token }).then(function (r) {
+        if (r.step === 'otp') { showOtp(r); return; }
+        waitTimer = setTimeout(tick, 6000);
+      }).catch(function (e) {
+        if (e.code === 'expired' || e.code === 'rejected') { showLogin(); msg(e.message); return; }
+        waitTimer = setTimeout(tick, 10000);   // 일시적인 오류는 조금 뒤 다시
+      });
+    };
+    waitTimer = setTimeout(tick, 6000);
+  }
+  $('wait-cancel').addEventListener('click', function () { msg(''); showLogin(); });
+
+  function showOtp(res) {
+    (function () {
       preToken = res.preToken;
       $('otp-who').textContent = (res.name || res.email) + ' (' + res.email + ')';
       $('enroll').hidden = !res.enroll;
@@ -228,10 +266,7 @@
       $('otp-code').value = '';
       show('otp');
       setTimeout(function () { $('otp-code').focus(); }, 50);
-    }).catch(function (e) {
-      showLogin();
-      msg(e.message || '로그인에 실패했습니다.');
-    });
+    })();
   }
 
   /* ---------- 2단계 ---------- */
@@ -263,7 +298,7 @@
       'if(j&&j.error){if(j.error==="auth"){clear();alert(j.message||"다시 로그인해 주세요.");location.href=location.pathname;return}' +
       'if(fail)fail(new Error(j.message||j.error));return}if(ok)ok(j)}).catch(function(e){if(fail)fail(e)})}' +
       'function runner(){var ok,fail,r={withSuccessHandler:function(f){ok=f;return r},withFailureHandler:function(f){fail=f;return r}};' +
-      '["getState","getTables","saveSections","saveTable"].forEach(function(n){r[n]=function(){call(n,[].slice.call(arguments),ok,fail)}});return r}' +
+      '["getState","getTables","saveSections","saveTable","adminList","adminSet"].forEach(function(n){r[n]=function(){call(n,[].slice.call(arguments),ok,fail)}});return r}' +
       'window.google=window.google||{};window.google.script={get run(){return runner()}};' +
       'window.GDD_LOGOUT=function(){fetch(API,{method:"POST",credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"logout",token:TOKEN})})' +
       '.catch(function(){}).then(function(){clear();location.href=location.pathname})};})();<\/script>';
@@ -298,6 +333,7 @@
   var params = new URLSearchParams(location.search);
   var v = params.get('v');
   if (v === 'mobile' || v === 'pc') { try { sess().setItem('gdd_view', v); } catch (e) {} }
+  if (params.get('admin') === '1') { try { sess().setItem('gdd_admin_open', '1'); } catch (e) {} }   // 알림 메일 링크: 로그인 뒤 승인 관리 열기
   var naverCode = params.get('code'), naverState = params.get('state');
   if (naverCode || params.get('error')) history.replaceState(null, '', pageBase() + (v ? '?v=' + v : ''));
 
