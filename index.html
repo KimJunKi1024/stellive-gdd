@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#4f48b8">
+<title>스텔라이브 기획서 · 로그인</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f5fb; --paper: #ffffff; --line: #e4e2f3; --ink: #191925; --ink-2: #3d4060; --muted: #6b6f8e;
+    --violet: #867dda; --deep: #4f48b8; --bad: #b8344f; --bad-bg: #fbe6ec; --ok: #12855d;
+    --grad: linear-gradient(135deg, #8a7fdb 0%, #7aa0ee 100%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #11111a; --paper: #1a1a27; --line: #302f49; --ink: #ecebf8; --ink-2: #c5c6df; --muted: #9a9dbb;
+      --violet: #a59df2; --deep: #bdb6ff; --bad: #ff8aa2; --bad-bg: rgba(255,138,162,0.14); --ok: #5fd0a5;
+      --grad: linear-gradient(135deg, #6c62c8 0%, #5b7fd3 100%);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Pretendard', 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+    padding-top: calc(24px + env(safe-area-inset-top)); line-height: 1.6; word-break: keep-all; }
+  .card { width: 100%; max-width: 400px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px;
+    padding: 28px 24px 24px; box-shadow: 0 10px 40px rgba(80,70,180,0.10); }
+  .logo { display: block; width: 168px; height: auto; margin: -6px auto 6px; }
+  h1 { font-size: 20px; text-align: center; margin: 0 0 4px; }
+  .sub { text-align: center; color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+  .step { display: none; }
+  .step.on { display: block; }
+  .btns { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+  .gbtn { display: flex; justify-content: center; min-height: 44px; }
+  .nbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 44px; border: 0; border-radius: 6px;
+    background: #03c75a; color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .nbtn b { font-family: Arial, sans-serif; font-size: 18px; }
+  .rule { font-size: 12.5px; color: var(--muted); margin: 16px 0 0; text-align: center; }
+  label.field { display: block; font-size: 13px; color: var(--ink-2); margin: 16px 0 6px; font-weight: 700; }
+  input.code { width: 100%; font: inherit; font-size: 26px; letter-spacing: 0.4em; text-align: center; padding: 10px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  input.code:focus { outline: 2px solid var(--violet); outline-offset: 1px; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--ink-2); margin: 12px 0 0; cursor: pointer; }
+  .primary { width: 100%; height: 46px; margin-top: 16px; border: 0; border-radius: 12px; background: var(--grad); color: #fff;
+    font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .primary:disabled { opacity: 0.6; cursor: default; }
+  .link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; margin-top: 12px; }
+  .msg { display: none; margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; background: var(--bad-bg); color: var(--bad); }
+  .msg.on { display: block; }
+  .who { text-align: center; font-size: 14px; color: var(--ink-2); margin: 0 0 6px; }
+  .enroll { border: 1px dashed var(--line); border-radius: 14px; padding: 14px; margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .enroll ol { margin: 6px 0 10px; padding-left: 20px; }
+  .qr { display: flex; justify-content: center; margin: 8px 0; }
+  .qr img, .qr canvas { background: #fff; padding: 8px; border-radius: 10px; width: 184px; height: 184px; image-rendering: pixelated; }
+  .secret { font-family: ui-monospace, Consolas, monospace; font-size: 13px; word-break: break-all; text-align: center; background: var(--bg);
+    border-radius: 8px; padding: 6px 8px; user-select: all; }
+  .otpapp { display: block; text-align: center; margin: 10px 0 0; color: var(--deep); font-weight: 700; }
+  .loading { text-align: center; color: var(--muted); font-size: 14px; padding: 18px 0; }
+  .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--violet);
+    animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+  <img class="logo" src="icon-192.png" alt="">
+  <h1>스텔라이브 기획서</h1>
+  <p class="sub">등록된 사람만 볼 수 있습니다</p>
+
+  <section class="step on" id="step-loading">
+    <div class="loading"><div class="spinner"></div><span id="loading-text">확인하는 중…</span></div>
+  </section>
+
+  <section class="step" id="step-login">
+    <div class="btns">
+      <div class="gbtn" id="google-btn"></div>
+      <button class="nbtn" id="naver-btn" type="button"><b>N</b> 네이버로 로그인</button>
+    </div>
+    <p class="rule">개인 Google 계정(@gmail.com) 또는 네이버 계정(@naver.com)만 쓸 수 있습니다.<br>학교·회사 계정은 쓸 수 없습니다.</p>
+  </section>
+
+  <section class="step" id="step-otp">
+    <p class="who" id="otp-who"></p>
+    <div class="enroll" id="enroll" hidden>
+      <strong>처음 로그인: OTP 앱 등록</strong>
+      <ol>
+        <li>휴대폰에 <b>Google OTP</b>(Google Authenticator) 앱을 설치합니다.</li>
+        <li>앱에서 <b>+ → QR 코드 스캔</b>으로 아래 QR을 찍습니다. (휴대폰에서 보고 있다면 아래 「OTP 앱에 바로 등록」)</li>
+        <li>앱에 나온 6자리를 아래에 입력합니다.</li>
+      </ol>
+      <div class="qr" id="qr"></div>
+      <div class="secret" id="secret" title="QR을 찍을 수 없을 때 앱에 직접 입력하는 키"></div>
+      <a class="otpapp" id="otpapp" href="#">OTP 앱에 바로 등록 (휴대폰)</a>
+    </div>
+    <form id="otp-form" autocomplete="off">
+      <label class="field" for="otp-code">OTP 앱의 6자리 코드</label>
+      <input class="code" id="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+      <label class="check"><input type="checkbox" id="remember"> 이 기기에서 30일 동안 로그인 유지</label>
+      <button class="primary" id="otp-submit" type="submit">확인</button>
+    </form>
+    <div style="text-align:center"><button class="link" type="button" id="restart">처음부터 다시 로그인</button></div>
+  </section>
+
+  <p class="msg" id="msg" role="alert"></p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" referrerpolicy="no-referrer"></script>
+<script>
+/* 스텔라이브 기획서 로그인 (2026-11-19)
+ * 1단계 Google·네이버 로그인 → 2단계 OTP → 서버(Apps Script)에서 기획서를 받아 이 페이지에 표시.
+ * 서버 요청에는 Google 쿠키를 싣지 않습니다(credentials: 'omit') — 계정이 여러 개여도 상관없음.
+ * 비밀번호는 이 페이지도 서버도 보지 않습니다. */
+(function () {
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbx2RGB9MN-fBbMT1c68JT6DokbozP05Yu7EWY75TdlWigSTrCbvD25C-PMQdrcCtKSp/exec';
+  var KEY = 'gdd_session';
+  var cfg = null, preToken = null;
+
+  function $(id) { return document.getElementById(id); }
+  function show(step) {
+    ['loading', 'login', 'otp'].forEach(function (s) { $('step-' + s).classList.toggle('on', s === step); });
+  }
+  function msg(text) { $('msg').textContent = text || ''; $('msg').classList.toggle('on', !!text); }
+  function loading(text) { $('loading-text').textContent = text; show('loading'); }
+
+  function store() { try { return window.localStorage; } catch (e) { return null; } }
+  function sess() { try { return window.sessionStorage; } catch (e) { return null; } }
+  function getToken() {
+    var t = null;
+    try { t = (store() && store().getItem(KEY)) || (sess() && sess().getItem(KEY)); } catch (e) {}
+    return t;
+  }
+  function setToken(t, remember) {
+    try {
+      (remember ? store() : sess()).setItem(KEY, t);
+      (remember ? sess() : store()).removeItem(KEY);
+    } catch (e) {}
+  }
+  function clearToken() {
+    try { store() && store().removeItem(KEY); } catch (e) {}
+    try { sess() && sess().removeItem(KEY); } catch (e) {}
+  }
+
+  function api(body) {
+    return fetch(API, {
+      method: 'POST', credentials: 'omit', redirect: 'follow', referrerPolicy: 'no-referrer',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.error) { var e = new Error(j.message || j.error); e.code = j.error; throw e; }
+      return j;
+    });
+  }
+
+  function randomHex(n) {
+    var a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  function pageBase() { return location.origin + location.pathname; }
+  function wantMobile() {
+    var v = new URLSearchParams(location.search).get('v') || (sess() && sess().getItem('gdd_view'));
+    if (v === 'mobile') return true;
+    if (v === 'pc') return false;
+    return window.matchMedia('(max-width: 760px)').matches;
+  }
+
+  /* ---------- 1단계 ---------- */
+  function showLogin() {
+    show('login');
+    if (cfg.googleClientId) {
+      var start = function () {
+        google.accounts.id.initialize({
+          client_id: cfg.googleClientId, ux_mode: 'popup', auto_select: false, itp_support: true,
+          callback: function (r) { doLogin({ provider: 'google', idToken: r.credential }); }
+        });
+        google.accounts.id.renderButton($('google-btn'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'ko', width: 300 });
+      };
+      if (window.google && google.accounts && google.accounts.id) start();
+      else {
+        var s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true; s.onload = start;
+        s.onerror = function () { msg('Google 로그인 버튼을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.'); };
+        document.head.appendChild(s);
+      }
+    } else {
+      $('google-btn').textContent = 'Google 로그인 준비 중';
+    }
+    $('naver-btn').hidden = !cfg.naverClientId;
+  }
+
+  $('naver-btn').addEventListener('click', function () {
+    var state = randomHex(16);
+    sess().setItem('naver_state', state);
+    var redirect = cfg.loginPageUrl || pageBase();
+    location.href = 'https://nid.naver.com/oauth2.0/authorize?response_type=code' +
+      '&client_id=' + encodeURIComponent(cfg.naverClientId) +
+      '&redirect_uri=' + encodeURIComponent(redirect) + '&state=' + state;
+  });
+
+  function doLogin(body) {
+    msg('');
+    loading('계정을 확인하는 중…');
+    body.action = 'login';
+    api(body).then(function (res) {
+      preToken = res.preToken;
+      $('otp-who').textContent = (res.name || res.email) + ' (' + res.email + ')';
+      $('enroll').hidden = !res.enroll;
+      if (res.enroll) {
+        $('secret').textContent = res.secret.replace(/(.{4})/g, '$1 ').trim();
+        $('otpapp').href = res.otpauth;
+        $('qr').innerHTML = '';
+        if (window.qrcode) {
+          var q = qrcode(0, 'M');
+          q.addData(res.otpauth);
+          q.make();
+          $('qr').innerHTML = q.createImgTag(5, 0, 'OTP 등록용 QR 코드');
+        }
+      }
+      $('otp-code').value = '';
+      show('otp');
+      setTimeout(function () { $('otp-code').focus(); }, 50);
+    }).catch(function (e) {
+      showLogin();
+      msg(e.message || '로그인에 실패했습니다.');
+    });
+  }
+
+  /* ---------- 2단계 ---------- */
+  $('otp-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var code = $('otp-code').value.replace(/\s/g, '');
+    if (!/^\d{6}$/.test(code)) { msg('6자리 숫자를 입력해 주세요.'); return; }
+    var remember = $('remember').checked;
+    $('otp-submit').disabled = true;
+    msg('');
+    api({ action: 'otp', preToken: preToken, code: code, remember: remember }).then(function (res) {
+      setToken(res.token, remember);
+      openPlan();
+    }).catch(function (e) {
+      $('otp-submit').disabled = false;
+      if (e.code === 'expired' || e.code === 'locked') { preToken = null; showLogin(); }
+      msg(e.message || 'OTP 확인에 실패했습니다.');
+    });
+  });
+  $('restart').addEventListener('click', function () { preToken = null; msg(''); showLogin(); });
+
+  /* ---------- 기획서 열기 ---------- */
+  function shim(token) {
+    var api = JSON.stringify(API), key = JSON.stringify(KEY), tok = JSON.stringify(token);
+    return '<script>(function(){var API=' + api + ',KEY=' + key + ',TOKEN=' + tok + ';' +
+      'function clear(){try{localStorage.removeItem(KEY)}catch(e){}try{sessionStorage.removeItem(KEY)}catch(e){}}' +
+      'function call(fn,args,ok,fail){fetch(API,{method:"POST",credentials:"omit",referrerPolicy:"no-referrer",headers:{"Content-Type":"text/plain;charset=utf-8"},' +
+      'body:JSON.stringify({action:"call",fn:fn,args:args,token:TOKEN})}).then(function(r){return r.json()}).then(function(j){' +
+      'if(j&&j.error){if(j.error==="auth"){clear();alert(j.message||"다시 로그인해 주세요.");location.href=location.pathname;return}' +
+      'if(fail)fail(new Error(j.message||j.error));return}if(ok)ok(j)}).catch(function(e){if(fail)fail(e)})}' +
+      'function runner(){var ok,fail,r={withSuccessHandler:function(f){ok=f;return r},withFailureHandler:function(f){fail=f;return r}};' +
+      '["getState","getTables","saveSections","saveTable"].forEach(function(n){r[n]=function(){call(n,[].slice.call(arguments),ok,fail)}});return r}' +
+      'window.google=window.google||{};window.google.script={get run(){return runner()}};' +
+      'window.GDD_LOGOUT=function(){fetch(API,{method:"POST",credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"logout",token:TOKEN})})' +
+      '.catch(function(){}).then(function(){clear();location.href=location.pathname})};})();<\/script>';
+  }
+
+  function openPlan() {
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+    var mobile = wantMobile();
+    loading('기획서를 불러오는 중…');
+    api({ action: 'call', fn: 'page', args: [mobile], token: token }).then(function (res) {
+      var html = String(res.html);
+      var i = html.search(/<head[^>]*>/i);
+      var inject = shim(token);
+      if (i >= 0) {
+        var end = html.indexOf('>', i) + 1;
+        html = html.slice(0, end) + inject + html.slice(end);
+      } else {
+        html = inject + html;
+      }
+      document.open();
+      document.write(html);
+      document.close();
+    }).catch(function (e) {
+      if (e.code === 'auth') { clearToken(); showLogin(); msg(e.message); return; }
+      show('login');
+      msg('기획서를 불러오지 못했습니다: ' + (e.message || e));
+    });
+  }
+
+  /* ---------- 시작 ---------- */
+  var params = new URLSearchParams(location.search);
+  var v = params.get('v');
+  if (v === 'mobile' || v === 'pc') { try { sess().setItem('gdd_view', v); } catch (e) {} }
+  var naverCode = params.get('code'), naverState = params.get('state');
+  if (naverCode || params.get('error')) history.replaceState(null, '', pageBase() + (v ? '?v=' + v : ''));
+
+  api({ action: 'config' }).then(function (c) {
+    cfg = c;
+    if (naverCode) {
+      var expected = sess() && sess().getItem('naver_state');
+      sess() && sess().removeItem('naver_state');
+      if (!expected || expected !== naverState) { showLogin(); msg('네이버 로그인 확인에 실패했습니다. 다시 시도해 주세요.'); return; }
+      doLogin({ provider: 'naver', code: naverCode, state: naverState });
+    } else if (params.get('error')) {
+      showLogin(); msg('네이버 로그인이 취소되었습니다.');
+    } else if (getToken()) {
+      openPlan();
+    } else {
+      showLogin();
+    }
+  }).catch(function () {
+    show('login');
+    msg('서버에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+  });
+})();
+</script>
+</body>
+</html>
